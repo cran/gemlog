@@ -1,0 +1,5 @@
+export(Convert, ReadGem, ScanMetadata, PlotMetadata)
+importFrom("graphics", "axis", "legend", "lines", "mtext", "par", "plot")
+importFrom("stats", "approx", "fft", "lm", "sd")
+importFrom("utils", "write.table")
+importFrom("signal", "filter", "butter")

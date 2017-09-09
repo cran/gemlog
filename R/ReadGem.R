@@ -28,7 +28,9 @@ ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, v
         linetype = substr(body, 1, 1)
         wg = which(linetype == 'G')
         if(length(wg) == 0 && requireGPS){
-            warning(paste('Metadata only for file with no GPS', fn[i]))
+#          warning(paste('Metadata only for file with no GPS', fn[i]))
+          warning(paste('Skipping file (no GPS): ', fn[i]))
+          next
         }
         wm = which(linetype == 'M')
         wd = which(linetype == 'D')
@@ -55,7 +57,6 @@ ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, v
                     wg = wg[-attr(L$g, 'na.values')]
                 }
                 L$g = as.data.frame(L$g); names(L$g) = c('millis', 'millisLag', 'yr', 'mo', 'day', 'hr', 'min', 'sec', 'lat', 'lon')
-                                        #            L$g$sec = L$g$sec - 1 # this is really ugly but necessary: the Gem firmware assumes the PPS refers to the following string.  tests with the datacube reveal it actually refers to the preceding string. ### UNSURE ABOUT THIS.  WHICH IS IT?!  Reventador work disagrees.
             
                 L$g$td = getjul(L$g$yr, L$g$mo, L$g$day) + L$g$hr/24 + L$g$min/1440 + L$g$sec/86400
                 L$g$tf = 0 + strptime(paste(paste(L$g$yr, L$g$mo, L$g$day, sep = '-'), paste(L$g$hr, L$g$min, L$g$sec, sep=':')), format = '%Y-%m-%d %H:%M:%OS', tz = 'GMT') # %OS allows fractional seconds.  tz='GMT' is their format for UTC. 0 is to force it to be in format POSIXct (which works with lm() ) instead of POSIXlt
@@ -70,7 +71,8 @@ ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, v
                 wm = wm[-attr(L$m, 'na.values')]
             }
             L$m = as.data.frame(L$m); names(L$m) = c('millis', 'batt', 'temp', 'maxWriteTime', 'minFifoFree', 'maxFifoUsed', 'maxOverruns', 'gpsOnFlag', 'unusedStack1', 'unusedStackIdle')
-            L$m$t = NaN + L$m$batt
+            L$m$t = rep(NA, length(L$m$millis))
+            class(L$m$t) = c('POSIXct', 'POSIXt') # this is necessary to prevent problems with NA coercion to POSIXct, if timing isn't available.
         }
 
         if(!(requireGPS && length(wg)==0)){
@@ -170,9 +172,10 @@ ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, v
                 }
             }else{ ## No GPS data available, so set "true times" as NaN
                 if(length(wm) > 0){
-                    L$m$t = L$m$millis + NaN
+                  L$m$t = L$m$millis + NA # needs to be NA to prevent problems when coercing to POSIXct
+                  class(L$m$t) = c('POSIXct', 'POSIXt')
                 }
-                L$d$t = L$d$millis + NaN
+                L$d$t = L$d$millis + NA
             }
             
         ## error-checking: give a warning if any samples are missed or delays too long [NO LONGER USED--DELETE EVENTUALLY]
@@ -204,7 +207,8 @@ ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, v
         ## append header info: each item is a vector with each element corresponding to a file
         OUTPUT$header$file[i] = fn[i] # file name
         OUTPUT$header$SN[i] = L$SN # serial number
-        if(!(requireGPS && length(wg) == 0)){
+#        if(!(requireGPS && length(wg) == 0)){
+        if(length(wg) != 0){
             OUTPUT$header$lat[i] = mean(L$g$lat, na.rm=TRUE) 
             OUTPUT$header$lon[i] = mean(L$g$lon, na.rm = TRUE)
             OUTPUT$header$t1[i] = min(L$d$t) # start time

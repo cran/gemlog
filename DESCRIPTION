@@ -1,7 +1,7 @@
 Package: gemlog
 Type: Package
 Title: File Conversion for 'Gem Infrasound Logger'
-Version: 0.22
+Version: 0.24
 Date: 2017-09-08
 Author: Jake Anderson
 Maintainer: Jake Anderson <ajakef@gmail.com>
@@ -9,7 +9,7 @@ Description: Reads data files from the 'Gem infrasound logger' for analysis and 
 Depends: signal
 License: GPL
 LazyLoad: yes
-Packaged: 2017-09-09 01:05:23 UTC; jake
+Packaged: 2017-09-21 19:25:41 UTC; jake
 Repository: CRAN
-Date/Publication: 2017-09-09 03:42:36 UTC
+Date/Publication: 2017-09-21 20:14:01 UTC
 NeedsCompilation: no

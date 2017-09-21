@@ -1,13 +1,31 @@
-ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, verbose = TRUE, requireGPS = FALSE){
+ReadGem = function(nums = 0:9999, path = './', alloutput = FALSE, verbose = TRUE, requireGPS = FALSE, SN = character()){
     preamble_length = 4
 
     ## find the relevant files
-    fn = list.files(path, '^FILE.*TXT$')
-    sn = paste('000', nums, sep = '') 
-    sn = substr(sn, nchar(sn) - 3, nchar(sn)) # sn elements are zero-padded numbers 0-9999
-    fn = fn[fn %in% paste('FILE', sn, '.TXT', sep = '')]
+#    fn = list.files(path, '^FILE.*TXT$')
+#    fn = list.files(path, '^FILE')
+    fn = list.files(path, '^FILE[[:digit:]]{4}\\.[[:alnum:]]{3}$') # command to find all filenames of the form FILEXXXX.YYY
+
+    num_strings = paste('000', nums, sep = '') 
+    num_strings = substr(num_strings, nchar(num_strings) - 3, nchar(num_strings)) # num_strings elements are zero-padded numbers 0-9999
+    fn = fn[substr(fn, 1, 8) %in% paste('FILE', num_strings, sep = '')]
     fn = paste(path, fn, sep = '/')
 
+    ## try to handle serial number intelligently. if unset by user, first have it default to whatever extension is most common in fn. if still NA after that, default to whatever is saved in the first header.
+    ext = substr(fn, nchar(fn)-2, nchar(fn)) # 3-character filename extensions
+    if(0 == length(SN)){
+      uext = unique(ext[ext != 'TXT'])
+      SN = uext[which.max(sapply(uext, function(x)sum(ext == x)))]
+      if(0 != length(SN)){
+        warning(paste('Serial number not set; using', SN))
+      }
+    }
+
+    ## if we know SN, only test files whose extensions are either SN or TXT
+    if(0 != length(SN)){ 
+      fn = fn[ext %in% c(SN, 'TXT')]
+    }
+    
     ## set up output list
 #    OUTPUT = list(t = .POSIXct(character()), p = numeric(), header = list(), metadata = list(), gps = list()) # that's how you make an empty POSIXct...
     empty_time = Sys.time()[-1]
@@ -15,7 +33,21 @@ ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, v
     ## loop through files, processing each individually and appending to OUTPUT
     for(i in 1:length(fn)){
         if(verbose) print(paste('File', i, 'of', length(fn), ':', fn[i]))
+
         L = list()
+
+        ## check the serial number. if the default serial number still isn't set, set it on the first file here.
+        SN_i = scan(fn[i], skip = preamble_length, nlines = 1, sep = ',', what = character(), quiet = TRUE)[2] # do a separate scan so that in case the SN is wrong, you don't waste time scanning the whole thing
+        if(0 == length(SN) && i == 1){
+          SN = SN_i
+          warning(paste('Serial number not set; using', SN_i))
+        }else if(SN_i != SN){ # skip this file if the serial number is wrong
+          warning(paste('Skipping file ', fn[i], ': wrong serial number', sep = ''))
+          next
+        }
+        L$SN = SN_i
+
+        ## If we're here, clear to read the whole file
         R = readLines(fn[i])
         
         # check whether file is empty; skip if necessary
@@ -40,8 +72,7 @@ ReadGem = function(nums = 0:9999, path = '/media/jake/SD/', alloutput = FALSE, v
             next
         }
 
-        L$SN = substr(R[preamble_length+1], 3, 6) # read the serial number
-## Make data matrix
+        ## Make data matrix
         if(!(requireGPS && length(wg) == 0)){
             L$d = Lines2Matrix(body[wd], 3) # custom function defined below
             if(length(attr(L$d, 'na.values')) > 0){

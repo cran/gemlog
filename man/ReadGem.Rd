@@ -8,26 +8,29 @@
 	Reads raw Gem data into R. To write segy files, use Convert.
 }
 \usage{
-ReadGem(nums = 0:9999, path = "/media/jake/SD/", alloutput = FALSE, 
-verbose = TRUE, requireGPS = FALSE)
+ReadGem(nums = 0:9999, path = "./", alloutput = FALSE, 
+verbose = TRUE, requireGPS = FALSE, SN = character())
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{nums}{
-  File numbers to convert.
-}
+    File numbers to convert.
+  }
   \item{path}{
-  Directory in which raw data files are contained.
-}
+    Directory in which raw data files are contained.
+  }
   \item{alloutput}{
-  Include raw data in the output, in addition to the processed data.
-}
+    Include raw data in the output, in addition to the processed data.
+  }
   \item{verbose}{
-  Provide verbose output.
-}
+    Provide verbose output.
+  }
   \item{requireGPS}{
-  Require GPS strings to perform the conversion.
-}
+    Require GPS strings to perform the conversion.
+  }
+  \item{SN}{
+    If set, only read files of this serial number.
+  }
 }
 \value{
 \item{t}{sample times (POSIXct)}

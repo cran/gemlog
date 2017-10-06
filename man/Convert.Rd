@@ -8,7 +8,7 @@
 \usage{
 Convert(rawpath = ".", convertedpath = "converted", metadatapath = "metadata", 
 metadatafile = NA, gpspath = "gps", gpsfile = NA, t1 = -Inf, t2 = Inf, nums = NaN, 
-SN = NaN, bitweight = 0.256/2^15/(4.6e-05 * 3.4/7)/23.455, time_adjustment = 0, 
+SN = character(), bitweight = 0.256/2^15/(4.6e-05 * 3.4/7)/23.455, time_adjustment = 0, 
 yr = 2016, blockdays = 1)
 }
 %- maybe also 'usage' for other objects documented here.

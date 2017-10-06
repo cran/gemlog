@@ -1,10 +1,10 @@
-Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'metadata', metadatafile = NA, gpspath = 'gps', gpsfile = NA, t1 = -Inf, t2 = Inf, nums = NaN, SN = NaN, bitweight = 0.256/2^15 / (46e-6*3.4/7) / 23.455, time_adjustment = 0, yr = 2016, blockdays = 1){
+Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'metadata', metadatafile = NA, gpspath = 'gps', gpsfile = NA, t1 = -Inf, t2 = Inf, nums = NaN, SN = character(), bitweight = 0.256/2^15 / (46e-6*3.4/7) / 23.455, time_adjustment = 0, yr = 2016, blockdays = 1){
   ## bitweight: volts/count over transducer sensitivity over gain: given is 0.5" with 2.2k resistor
   ## time adjustment: time (s) to add to time vector as a correction.  015 seems to always need -1.
   
   ## if 'nums' is default, convert all the files in this directory
   if(is.na(nums[1])){
-    fn = list.files(rawpath, 'FILE.....TXT')
+    fn = list.files(rawpath, 'FILE[[:digit:]]{4}....')
     nums = as.numeric(substr(fn, 5, 8))
   }
   ## start at the first file in 'nums'
@@ -14,8 +14,13 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
   if(!dir.exists(rawpath)){
     stop(paste('Raw directory', rawpath, 'does not exist'))
   }
-  if(0 == length(list.files(rawpath, 'FILE[[:digit:]]{4}.TXT'))){
+  if(0 == length(list.files(rawpath, 'FILE[[:digit:]]{4}....'))){
     stop(paste('No data files found in directory', rawpath))
+  }
+
+  ## make sure bitweight is a scalar
+  if(length(bitweight) != 1){
+    stop('bitweight must have length 1 (cannot be a vector, or empty)')
   }
   
   ## read the first set of up to (24*blockdays) files
@@ -23,7 +28,9 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
   while(length(L$t) == 0){ ## read sets of files until we get one that isn't empty
     if(n1 > max(nums)) return() # if you've made it past the end of nums, just return
     nums_block = nums[nums >= n1 & nums < (n1 + (24*blockdays))]
-    L = ReadGem(nums_block, rawpath, alloutput = FALSE, requireGPS = TRUE)
+    ##    L = ReadGem(nums_block, rawpath, alloutput = FALSE, requireGPS = TRUE)
+    L = ReadGem(nums_block, rawpath, alloutput = FALSE, requireGPS = TRUE, SN = SN)
+    
     n1 = n1 + (24*blockdays) # increment file number counter
   }
   t = L$t + time_adjustment#/86400
@@ -40,7 +47,7 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
   }
   
   wsn = 0
-  while(is.na(SN)){ # take the first non-NA SN. This is important because there can be blank files in there.
+  while(length(SN) == 0 || is.na(SN)){ # take the first non-NA SN. This is important because there can be blank files in there.
     wsn = wsn+1
     SN = L$header$SN[wsn]
   }
@@ -78,7 +85,8 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
   
                                         # start metadata and gps files
   metadata = L$metadata
-  metadata[,11] = POSIXct2jd(metadata[,11])
+#  metadata[,11] = POSIXct2jd(metadata[,11])
+  metadata$t = POSIXct2jd(metadata$t) # depending on format, t might not be column 11
   gps = L$gps
   write.table(metadata[metadata$t > POSIXct2jd(t1 - 1),], file = metadatafile, quote=FALSE, sep=',', row.names=FALSE, col.names=TRUE)
   wgps = which(gps$date > POSIXct2jd(t1 - 1))

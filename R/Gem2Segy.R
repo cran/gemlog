@@ -1,13 +1,16 @@
 Gem2Segy = function(L, dir = '.', yr = 2015, interp = TRUE, starttime = L$t[1]-0.01/86400, t1 = -Inf, t2 = Inf, bitweight = 1/128000 / (46e-6 * 3.4/7) / 23.455){
 ##### bitweight: (V/count) / (V/Pa) / gain: (4096 mV / 16 / 2^15 count) / (46e-6 V/Pa * 3.3 V/7 V) / 23.455)
-    ## adjust bitweight for transducers that are not 0.5"
+  ## adjust bitweight for transducers that are not 0.5"
+  if(length(bitweight) > 1){
+    warning('length(bitweight) > 1; using the first element')
+  }
 #    require(RSEIS) # for write1segy...maybe include write1segy and credit JML? #shouldn't be needed anymore--write1segy is part of gem
     eps = 1e-4
     wna = is.na(L$t)
     L$t = L$t[!wna]
     L$p = L$p[!wna]
     P = InterpTime(L, t1 = t1, t2 = t2)
-
+  
   hours = P$t[0] # empty variable of type POSIX.ct ( c(POSIXct.variable, NULL) doesn't work)
   testhour = as.POSIXct(trunc(min(P$t), units = 'hours')) 
   while(testhour <= max(P$ends)){
@@ -136,7 +139,7 @@ Gem2Segy = function(L, dir = '.', yr = 2015, interp = TRUE, starttime = L$t[1]-0
                          trigminute = mi,
                          trigsecond = sec,
                          trigmills = msec,
-                         scale_fac = bitweight,
+                         scale_fac = bitweight[1],
                          inst_no = as.numeric(paste('0x', sta, sep = '')),
                          not_to_be_used = 0,
                          num_samps = length(amp),

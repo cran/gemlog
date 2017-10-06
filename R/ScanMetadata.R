@@ -1,7 +1,9 @@
 ScanMetadata = function(fn, plot = TRUE){
+    whatnames = scan(fn, what = character(), sep = ',', nlines = 1)
+    what = list()
     n = numeric()
-    what = list(millis=n, batt=n, temp=n, maxWriteTime=n, minFifoFree=n, maxFifoUse=n, maxOverruns=n, gpsOnFlag=n, unusedStack1=n, unusedStackIdle=n, t=n)
-
+    for(i in whatnames)what[[i]] = n
+    
     M = scan(fn, what = what, sep = ',', skip=1)
     if(plot){
         PlotMetadata(M)

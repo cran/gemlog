@@ -11,7 +11,7 @@
 }
 \usage{
 ScanMetadata(fn, plot = TRUE)
-PlotMetadata(M, xlim = range(M$t))
+PlotMetadata(M, xlim = range(M$t, na.rm = TRUE))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

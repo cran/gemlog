@@ -54,6 +54,7 @@ ReadGem_v0.85= function(nums = 0:9999, path = './', alloutput = FALSE, verbose =
     }
     
     body = R[(preamble_length+2):length(R)]
+    body = body[!is.na(iconv(body))] ## to prevent substr from choking on any multibyte characters (from bad lines)--JFA 2017-10-13
     linetype = substr(body, 1, 1)
     wg = which(linetype == 'G')
     if(length(wg) == 0 && requireGPS){

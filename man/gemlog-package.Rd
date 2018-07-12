@@ -22,7 +22,9 @@ The DESCRIPTION file:
 Maintainer: \packageMaintainer{gemlog}
 }
 \references{
-~~ Literature or other references for background information ~~
+  Anderson, JF, JB Johnson, DC Bowman, and TJ Ronan (2018). The Gem Infrasound
+  Logger and Custom-Built Instrumentation. Seismological Research
+  Letters 89 (1), 153-164. https://doi.org/10.1785/0220170067
 }
 
 \keyword{ package }

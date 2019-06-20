@@ -8,8 +8,9 @@
 \usage{
 Convert(rawpath = ".", convertedpath = "converted", metadatapath = "metadata", 
 metadatafile = NA, gpspath = "gps", gpsfile = NA, t1 = -Inf, t2 = Inf, nums = NaN, 
-SN = character(), bitweight = 0.256/2^15/(4.6e-05 * 3.4/7)/23.455, time_adjustment = 0, 
-yr = 2016, blockdays = 1)
+SN = character(), bitweight = NaN, units = 'Pa', time_adjustment = 0, yr
+= 2016, blockdays = 1)
+
 }
 %- maybe also 'usage' for other objects documented here.
 
@@ -45,7 +46,13 @@ File numbers to convert.
 Serial number of Gem data files to convert (to be safe, when data from multiple Gems could be mixed).
 }
   \item{bitweight}{
-Conversion factor between counts and Pascals (Pa per count).
+Conversion factor between counts and output units (e.g., Pa per
+  count). Leave as NaN to use default value (for logger version,
+  configuration, and 'units').
+}
+\item{units}{
+  Units for output: can be 'Pa', 'V', or 'counts'. Only used when
+  bitweight is left unset and default bitweight is calculated.
 }
   \item{time_adjustment}{
 Offset to add to output times (usually unnecessary, sometimes +/- 1 s).

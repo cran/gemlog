@@ -1,4 +1,9 @@
 PlotMetadata = function(M, xlim = range(M$t, na.rm = TRUE)){
+  ## check format of M
+  if('metadata' %in% names(M)){ ## if yes, this is just the output of ReadGem, and needs to be reformatted
+    M = M$metadata
+    M$t = POSIXct2jd(M$t)
+  }
   ## in case of data gaps, add NaNs to avoid drawing long lines through gaps
   w = which(diff(M$t) > 60/86400) # identify gaps that are longer than 1 minute
   if(length(w) > 0){
@@ -45,3 +50,6 @@ PlotMetadata = function(M, xlim = range(M$t, na.rm = TRUE)){
 rescale = function(x, newlim, oldlim = range(x, na.rm = TRUE)){
   (x - oldlim[1])/(oldlim[2] - oldlim[1]) * (newlim[2] - newlim[1]) + newlim[1]
 }
+
+
+

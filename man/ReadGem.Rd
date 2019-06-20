@@ -8,8 +8,9 @@
 	Reads raw Gem data into R. To write segy files, use Convert.
 }
 \usage{
-ReadGem(nums = 0:9999, path = "./", alloutput = FALSE, 
-verbose = TRUE, requireGPS = FALSE, SN = character())
+ReadGem(nums = 0:9999, path = './', SN = character(), units = 'Pa',
+bitweight = NaN, bitweight_V = NaN, bitweight_Pa = NaN, alloutput =
+FALSE, verbose = TRUE, requireGPS = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -18,6 +19,24 @@ verbose = TRUE, requireGPS = FALSE, SN = character())
   }
   \item{path}{
     Directory in which raw data files are contained.
+  }
+  \item{SN}{
+    If set, only read files of this serial number.
+  }
+  \item{units}{
+    For unit conversions: should the output be in V, Pa, or counts? 
+  }
+  \item{bitweight}{
+    If set, override the default bitweight for this logger in the
+    current configuration. 
+  }
+  \item{bitweight_V}{
+    If set, override the default V bitweight for this logger in the
+    current configuration. 
+  }
+  \item{bitweight_Pa}{
+    If set, override the default Pa bitweight for this logger in the
+    current configuration. 
   }
   \item{alloutput}{
     Include raw data in the output, in addition to the processed data.
@@ -28,13 +47,10 @@ verbose = TRUE, requireGPS = FALSE, SN = character())
   \item{requireGPS}{
     Require GPS strings to perform the conversion.
   }
-  \item{SN}{
-    If set, only read files of this serial number.
-  }
 }
 \value{
 \item{t}{sample times (POSIXct)}
-\item{p}{samples (counts)}
+\item{p}{samples (in whatever units were set by user)}
 \itemize{
 	\item{gps$yr}{year of gps samples}
 	\item{gps$date}{gps sample time, as fractional day of year}
@@ -60,7 +76,10 @@ verbose = TRUE, requireGPS = FALSE, SN = character())
 	\item{header$lon}{mean longitude}
 	\item{header$t1}{start time}
 	\item{header$t2}{end time}
-	\item{header$alloutput}{if alloutput == TRUE, list including raw data}
+	\item{header$alloutput}{if alloutput == TRUE, list including raw
+	  data}
+	\item{config}{configuration settings set using Gem configuration
+	file}
 }
 }
 \author{
@@ -74,7 +93,7 @@ Convert
 }
 \examples{
 \dontrun{
-ReadGem(0:1, 'raw/000') # read files raw/000/FILE0000.TXT and raw/000/FILE0001.TXT
+ReadGem(nums = 0:1, path = 'raw/', SN = '000') # read files raw/FILE0000.000 and raw/FILE0001.000
 }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

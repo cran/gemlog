@@ -1,10 +1,13 @@
-Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'metadata', metadatafile = NA, gpspath = 'gps', gpsfile = NA, t1 = -Inf, t2 = Inf, nums = NaN, SN = character(), bitweight = 0.256/2^15 / (46e-6*3.4/7) / 23.455, time_adjustment = 0, yr = 2016, blockdays = 1){
-  ## bitweight: volts/count over transducer sensitivity over gain: given is 0.5" with 2.2k resistor
-  ## time adjustment: time (s) to add to time vector as a correction.  015 seems to always need -1.
+Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'metadata', metadatafile = NA, gpspath = 'gps', gpsfile = NA, t1 = -Inf, t2 = Inf, nums = NaN, SN = character(), bitweight = NaN, units = 'Pa', time_adjustment = 0, yr = 2016, blockdays = 1){
+  ## bitweight: leave blank to use default (considering Gem version, config, and units). This is preferred when using a standard Gem (R_g = 470 ohms)
   
   ## if 'nums' is default, convert all the files in this directory
   if(is.na(nums[1])){
-    fn = list.files(rawpath, 'FILE[[:digit:]]{4}....')
+    if(length(SN) == 1){
+      fn = list.files(rawpath, paste0('FILE[[:digit:]]{4}.(TXT|', SN, ')'))
+    }else{
+      fn = list.files(rawpath, 'FILE[[:digit:]]{4}....')
+    }
     nums = as.numeric(substr(fn, 5, 8))
   }
   ## start at the first file in 'nums'
@@ -29,14 +32,25 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
     if(n1 > max(nums)) return() # if you've made it past the end of nums, just return
     nums_block = nums[nums >= n1 & nums < (n1 + (24*blockdays))]
     ##    L = ReadGem(nums_block, rawpath, alloutput = FALSE, requireGPS = TRUE)
-    L = ReadGem(nums_block, rawpath, alloutput = FALSE, requireGPS = TRUE, SN = SN)
+    L = ReadGem(nums_block, rawpath, alloutput = FALSE, requireGPS = TRUE, SN = SN, units = 'counts') # request data in counts so it can be written to segy as ints. conversion to physical units is provided as a header element in the file.
     
     n1 = n1 + (24*blockdays) # increment file number counter
   }
   t = L$t + time_adjustment#/86400
   p = L$p
-                                        #    yr = rep(L$gps$year, length(p))
-  
+  yr = rep(L$gps$year[1], length(t))
+    
+  ## if bitweight isn't set, use the default bitweight for the logger version, config, and units
+  if(is.na(bitweight)){
+    if(units == 'Pa'){
+      bitweight = L$header$bitweight_Pa[1]
+    }else if(units == 'V'){
+      bitweight = L$header$bitweight_V[1]
+    }else if (units == 'Counts' || units == 'counts'){
+      bitweight = 1
+    }
+  }
+      
   ## if not specified, define t1 as the earliest integer-second time available
   if(is.infinite(t1)){
     t1 = min(t, na.rm = TRUE)
@@ -73,19 +87,8 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
     dir.create(convertedpath, recursive = TRUE)
   }
   
-                                        #    # check for matching serial numbers
-                                        #    if(FALSE){ # FIX THIS LATER
-                                        #    non_empty = which(sapply(L, length) != 0)
-                                        #    if(any(L$header$SN[non_empty] != SN)){
-                                        #        w = non_empty[L$header$SN != SN]
-                                        #        warning(paste('Wrong serial number(s):', paste(L$header$SN[w], collapse=','), ': numbers', paste((nums[nums >= n1 & nums < (n1 + (24*blockdays))])[w], collapse=',')))
-                                        #        browser()
-                                        #    }
-                                        #    }
-  
-                                        # start metadata and gps files
+  ## start metadata and gps files
   metadata = L$metadata
-#  metadata[,11] = POSIXct2jd(metadata[,11])
   metadata$t = POSIXct2jd(metadata$t) # depending on format, t might not be column 11
   gps = L$gps
   write.table(metadata[metadata$t > POSIXct2jd(t1 - 1),], file = metadatafile, quote=FALSE, sep=',', row.names=FALSE, col.names=TRUE)
@@ -113,7 +116,7 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
     ## load new data if necessary
     tt2 = min(t2, 0+truncUTC(t1, (86400*blockdays)) + (86400*blockdays) - 0.01, na.rm = TRUE)
     while(max(t, na.rm=TRUE) < tt2 && n1 <= max(nums)){
-      L = ReadGem(nums[nums >= n1 & nums < (n1 + (24*blockdays))], rawpath, alloutput = FALSE, requireGPS = TRUE)
+      L = ReadGem(nums[nums >= n1 & nums < (n1 + (24*blockdays))], rawpath, alloutput = FALSE, requireGPS = TRUE, SN = SN, units = 'counts')
       n1 = n1 + (24*blockdays) # increment file counter
 
       if(length(L$t) == 0) next # skip ahead if there aren't any readable data files here
@@ -137,7 +140,7 @@ Convert = function(rawpath = '.', convertedpath = 'converted', metadatapath = 'm
       ## update the gps file
       write.table(L$gps, gpsfile, quote = FALSE, sep = ',', row.names = FALSE, col.names = FALSE, append = TRUE)
     }
-    
+
     ## run the conversion and write new converted files
     if(any(t >= t1 & t <= tt2)){
       Gem2Segy(list(t=t, p=p, header=list(SN=SN)), dir = convertedpath, t1 = t1, t2 = tt2, bitweight = bitweight, yr = yr)

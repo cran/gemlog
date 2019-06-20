@@ -1,4 +1,4 @@
-ReadGem = function(nums = 0:9999, path = './', alloutput = FALSE, verbose = TRUE, requireGPS = FALSE, SN = character()){
+ReadGem = function(nums = 0:9999, path = './', SN = character(), units = 'Pa', bitweight = NaN, bitweight_V = NaN, bitweight_Pa = NaN, alloutput = FALSE, verbose = TRUE, requireGPS = FALSE){
 
   ## determine which format version the file is, and call the appropriate version of ReadGem.
   ## we assume that all files are the same format
@@ -32,14 +32,14 @@ ReadGem = function(nums = 0:9999, path = './', alloutput = FALSE, verbose = TRUE
   }
 
   if(length(fn) == 0){
-    stop('No data files found for nums and path')
+    warning(paste('No data files found for nums', paste(nums, collapse = ' '), 'and path', path))
     return(NULL)
   }
 
   ## use the version corresponding to the first file with the correct serial number. So, scan SN from files until you find the right one, then read the format, then break.
   for(i in 1:length(fn)){
     S = scan(fn[i], nlines = 1, what = list(character(), numeric()), sep = ',', skip = 4, quiet = TRUE)[[2]] # find the SN
-    if(as.numeric(SN) == as.numeric(S)){
+    if(length(S) > 0 && as.numeric(SN) == as.numeric(S)){
       S = scan(fn[i], nlines = 1, what = character(), quiet = TRUE)
       version = substr(S, 8, nchar(S))
       break
@@ -47,15 +47,40 @@ ReadGem = function(nums = 0:9999, path = './', alloutput = FALSE, verbose = TRUE
       version = NaN
     }
   }
-
-  ## ok, we finally know the correct serial number and file format. Read the file with the appropriate function.
+  ## check that same file to see if there's a configuration line. Note that we are assuming that all the files to be read here have the same configuration and same file format version.
+  config = list(gps_mode = 1, gps_cycle = 15, gps_quota = 20, adc_range = 0, led_shutoff = 0, serial_output = 0) ## default config: it's fairly safe to use this as the default because any other configuration would require 
+  for(j in 1:10){ ## scan the first few lines of the file, looking for a config line
+    line = scan(fn[i], skip = j, nlines = 1, sep = ',', what = character(), quiet = TRUE) 
+    if(line[1] == 'C'){
+      config = as.list(as.numeric(line[-1]))
+      names(config) = c('gps_mode', 'gps_cycle', 'gps_quota', 'adc_range', 'led_shutoff', 'serial_output')
+      break
+    }
+  }
+  bitweight_info = GetBitweightInfo(SN = SN, config = config, bitweight = bitweight, bitweight_V = bitweight_V, bitweight_Pa = bitweight_Pa, units = units)
+  
+  ## ok, we finally know the correct serial number, file format, and bitweight configuration. Read the file with the appropriate function.
   if(is.na(version)){
     stop('No data files had the correct serial number')
+  }else if(version == '0.85C'){
+    L = ReadGem_v0.85C(nums=nums, path=path, alloutput=alloutput, verbose=verbose, requireGPS=requireGPS, SN=SN)
   }else if(version == '0.85'){
-    invisible(ReadGem_v0.85(nums=nums, path=path, alloutput=alloutput, verbose=verbose, requireGPS=requireGPS, SN=SN))
+    L = ReadGem_v0.85(nums=nums, path=path, alloutput=alloutput, verbose=verbose, requireGPS=requireGPS, SN=SN)
   }else if(version == '0.8'){
-    invisible(ReadGem_v0.8(nums=nums, path=path, alloutput=alloutput, verbose=verbose, requireGPS=requireGPS, SN=SN))
+    L = ReadGem_v0.8(nums=nums, path=path, alloutput=alloutput, verbose=verbose, requireGPS=requireGPS, SN=SN)
   }else{
     stop(paste('Unrecognized file format in', fn[1]))
   }
+    
+  n = length(L$header$SN)
+  L$header$bitweight = rep(bitweight_info$bitweight, n)
+  L$header$bitweight_Pa = rep(bitweight_info$bitweight_Pa, n)
+  L$header$bitweight_V = rep(bitweight_info$bitweight_V, n)
+  L$header$units = rep(bitweight_info$units, n)
+  L$header$gem_version = rep(bitweight_info$version, n)
+  L$header$file_format_version = rep(version, n)
+  L$header$config = config
+
+  L$p = L$p * bitweight_info$bitweight
+  invisible(L)
 }

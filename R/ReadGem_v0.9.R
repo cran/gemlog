@@ -1,7 +1,8 @@
-ReadGem_v0.85C = function(nums = 0:9999, path = './', SN = character(), alloutput = FALSE, verbose = TRUE, requireGPS = FALSE, requireAbsoluteGPS = FALSE, t0 = '2000-01-01 00:01:00'){
+ReadGem_v0.9 = function(nums = 0:9999, path = './', SN = character(), alloutput = FALSE, verbose = TRUE, requireGPS = FALSE, requireAbsoluteGPS = FALSE, t0 = '2000-01-01 00:01:00'){
   tf0 = strptime(t0, format = '%Y-%m-%d %H:%M:%OS', tz = 'GMT')
   last_millis = NaN
-  preamble_length = 4
+  SN_line = 5
+  preamble_length = 5
   ## bitweight & units rules: if no bitweight is provided, use the default (accounting for config gain) in the specified units (default Pa; options V, counts). If bitweight is provided, any units are allowed, the config info is ignored, and the user takes full responsibility for getting everything right.
   ## config: be aware that the header$config$adc_range in this function's output should never be used to calculate sensitivity, bitweight, etc. That's what the header$bitweight element is for. The header$config$adc_range should only be used to see how the logger was working during data collection. This matters when a custom bitweight is used.
 
@@ -40,7 +41,7 @@ ReadGem_v0.85C = function(nums = 0:9999, path = './', SN = character(), alloutpu
     L = list()
     
     ## check the serial number. if the default serial number still isn't set, set it on the first file here.
-    SN_i = scan(fn[i], skip = preamble_length, nlines = 1, sep = ',', what = character(), quiet = TRUE)[2] # do a separate scan so that in case the SN is wrong, you don't waste time scanning the whole thing
+    SN_i = scan(fn[i], skip = SN_line-1, nlines = 1, sep = ',', what = character(), quiet = TRUE)[2] # do a separate scan so that in case the SN is wrong, you don't waste time scanning the whole thing
     if((0 == length(SN) || is.na(SN)) && i == 1){
       SN = SN_i
       warning(paste('Serial number not set; using', SN_i))

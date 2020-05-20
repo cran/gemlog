@@ -8,8 +8,7 @@
 \usage{
 Convert(rawpath = ".", convertedpath = "converted", metadatapath = "metadata", 
 metadatafile = NA, gpspath = "gps", gpsfile = NA, t1 = -Inf, t2 = Inf, nums = NaN, 
-SN = character(), bitweight = NaN, units = 'Pa', time_adjustment = 0, yr
-= 2016, blockdays = 1)
+SN = character(), bitweight = NaN, units = 'Pa', time_adjustment = 0, blockdays = 1)
 
 }
 %- maybe also 'usage' for other objects documented here.
@@ -57,11 +56,9 @@ Conversion factor between counts and output units (e.g., Pa per
   \item{time_adjustment}{
 Offset to add to output times (usually unnecessary, sometimes +/- 1 s).
 }
-  \item{yr}{
-Year of data (unnecessary).
-}
   \item{blockdays}{
-Amount of data (measured in days) to process at a time. Normally 1, but for computers with little memory, might be necessary to make less than 1.
+Amount of data (measured in days) to process at a time. This can be
+  decreased to 0.5 or 0.25 in case of memory problems.
 }
 }
 \details{

@@ -4,18 +4,21 @@ Gem2Segy = function(L, dir = '.', yr = 2015, interp = TRUE, starttime = L$t[1]-0
   if(length(bitweight) > 1){
     warning('length(bitweight) > 1; using the first element')
   }
-#    require(RSEIS) # for write1segy...maybe include write1segy and credit JML? #shouldn't be needed anymore--write1segy is part of gem
-    eps = 1e-4
-    wna = is.na(L$t)
-    L$t = L$t[!wna]
-    L$p = L$p[!wna]
-    P = InterpTime(L, t1 = t1, t2 = t2)
+  eps = 1e-4
+  wna = is.na(L$t)
+  L$t = L$t[!wna]
+  L$p = L$p[!wna]
+  P = InterpTime(L, t1 = t1, t2 = t2)
+
+  if(length(P$starts) == 0){
+    return()
+  }
   
   hours = P$t[0] # empty variable of type POSIX.ct ( c(POSIXct.variable, NULL) doesn't work)
   testhour = as.POSIXct(trunc(min(P$t), units = 'hours')) 
   while(testhour <= max(P$ends)){
     ## for each testhour, check to see whether it falls between a start and end
-    if(any(P$starts <= testhour & P$ends >= testhour)){
+    if(any(P$starts < testhour & P$ends > testhour)){ ## JFA 2019-09-11: used to be >= and <=, resulting in converted files where the start and end were equal.
       ## if it is between a start and end, add it to the hours list
       hours = c(hours, testhour)
     }
@@ -32,7 +35,8 @@ Gem2Segy = function(L, dir = '.', yr = 2015, interp = TRUE, starttime = L$t[1]-0
         amp = round(P$p[P$t >= t1 & P$t < t2])
         if(length(amp) == 0) next # just in case this is empty
         t1 = (P$t[P$t >= t1 & P$t < t2])[1]
-        sta = paste('0', substr(L$header$SN[1],2,4), sep = '')
+        ##sta = paste('0', substr(L$header$SN[1],2,4), sep = '') # 2019-12-26 JFA: I think this causes it to fail on 3-digit SN. replaced below.
+        sta = substr(L$header$SN[1], 1, 3)
         yr = as.numeric(strftime(t1+eps, '%Y', 'GMT'))
         jd = getjul(yr, as.numeric(strftime(t1+eps, '%m', 'GMT')), as.numeric(format(t1+eps, '%d', 'GMT')))
         hr = as.numeric(strftime(t1+eps, '%H', 'GMT'))
@@ -40,18 +44,7 @@ Gem2Segy = function(L, dir = '.', yr = 2015, interp = TRUE, starttime = L$t[1]-0
         sec = as.numeric(strftime(t1+eps, '%OS', 'GMT')) # OS allows fractional seconds
         msec = round(1000*(sec - floor(sec)))
         sec = floor(sec)
-#        jd = floor(t1+eps)
-#        hr = floor((t1+eps - jd)*24)
-#        mi = floor((t1+eps - jd - hr/24)*1440)
-#        sec = floor((t1+eps - jd - hr/24 - mi/1440)*86400)
-#        msec = round((t1+eps - jd - hr/24 - mi/1440 - sec/86400)*86400000)
         comp = '0'
-
-        ### new year processing
-#        if(jd == getjul(yr,12,31)+1){ # wrap-around from ReadGem
-#            jd = 1
-#            yr = yr + 1
-#        }
         
         alist = list(HEAD = list(
                          lineSeq=0,

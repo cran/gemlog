@@ -212,7 +212,7 @@ ReadGem_v0.85= function(nums = 0:9999, path = './', alloutput = FALSE, verbose =
     
     ## append GPS data if present
     if(length(wg) > 1){
-      OUTPUT$gps = rbind(OUTPUT$gps, as.data.frame(cbind(year = L$g$yr, date = L$g$td, lat = L$g$lat, lon = L$g$lon))[!wna,])
+      OUTPUT$gps = rbind(OUTPUT$gps, as.data.frame(cbind(year = L$g$yr, date = L$g$td, lat = L$g$lat, lon = L$g$lon)))#[!wna,]) # 2020-01-01: wna is redundant (has already been used to eliminate NaNs above, as wgood)
     }
     
     ## append header info: each item is a vector with each element corresponding to a file
@@ -247,6 +247,9 @@ ReadGem_v0.85= function(nums = 0:9999, path = './', alloutput = FALSE, verbose =
     print(c(length(L$d$t), length(L$d$pressure)))
     ## done with current file; move on to the next
   }
+  ## integer overflows have happened before--do this correction to be safe
+  OUTPUT$p = to_int16(OUTPUT$p)
+
   ## return the output
   invisible(OUTPUT)
 }
@@ -275,3 +278,6 @@ unwrap = function(x, m){
     cumsum(c(x[1], (((diff(x)+m/2) %% m)-m/2)))
 }
         
+to_int16 = function(x){
+  ((x + 2^15) %% 2^16) - 2^15
+}

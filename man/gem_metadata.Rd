@@ -6,7 +6,7 @@
   Metadata (temperature, battery, etc.) from a Gem data logger. Provided
   as an example for running PlotMetadata.
 }
-\usage{gem_metadata}
+\usage{data(gem_metadata)}
 \format{List containing vectors (time series) of different metadata types.}
 \source{Recording made by author.}
 \seealso{PlotMetadata}

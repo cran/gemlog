@@ -17,12 +17,15 @@ ReadGem = function(nums = 0:9999, path = './', SN = character(), units = 'Pa', b
   ext = substr(fn, nchar(fn)-2, nchar(fn)) # 3-character filename extensions
   if(0 == length(SN) || is.na(SN)){
     for(i in which(ext == 'TXT')){
-      ext[i] = scan(fn[i], nlines = 1, what = list(character(), character()), sep = ',', skip = 4, quiet = TRUE)[[2]]
+      ext[i] = ReadSN(fn[i])
+        #scan(fn[i], nlines = 1, what = list(character(), character()), sep = ',', skip = 4, quiet = TRUE)[[2]]
     }
     uext = unique(ext)
     SN = uext[which.max(sapply(uext, function(x)sum(ext == x)))]
     if(0 != length(SN) && !is.na(SN)){
       warning(paste('Serial number not set; using', SN))
+    }else{
+      stop('SN not provided and could not be inferred')
     }
   }
 
@@ -32,36 +35,42 @@ ReadGem = function(nums = 0:9999, path = './', SN = character(), units = 'Pa', b
   }
 
   if(length(fn) == 0){
-    warning(paste('No data files found for nums', paste(nums, collapse = ' '), 'and path', path))
+    warning(paste('No data files found for nums', paste(nums, collapse = ' '), 'in path', path))
     return(NULL)
+  }
+  ## check to see if any of the files are non-empty
+  if(all(file.size(fn) <= 0)){
+    warning(paste('No non-empty data files found for nums', paste(nums, collapse = ' '), 'in path', path))
+    return(NULL)
+  }else if(any(file.size(fn) <= 0)){
+    warning('Some files are empty; skipping')
+    fn = fn[file.size(fn) > 0]
   }
 
   ## use the version corresponding to the first file with the correct serial number. So, scan SN from files until you find the right one, then read the format, then break.
   for(i in 1:length(fn)){
-    S = scan(fn[i], nlines = 1, what = list(character(), numeric()), sep = ',', skip = 4, quiet = TRUE)[[2]] # find the SN
+    S = ReadSN(fn[i])
     if(length(S) > 0 && as.numeric(SN) == as.numeric(S)){
       S = scan(fn[i], nlines = 1, what = character(), quiet = TRUE)
       version = substr(S, 8, nchar(S))
       break
     }else{
       version = NaN
+      warning(paste('No data files found with correct serial number for nums', paste(nums, collapse = ' '), 'in path', path))
+      return(NULL)
     }
   }
+  
   ## check that same file to see if there's a configuration line. Note that we are assuming that all the files to be read here have the same configuration and same file format version.
-  config = list(gps_mode = 1, gps_cycle = 15, gps_quota = 20, adc_range = 0, led_shutoff = 0, serial_output = 0) ## default config: it's fairly safe to use this as the default because any other configuration would require 
-  for(j in 1:10){ ## scan the first few lines of the file, looking for a config line
-    line = scan(fn[i], skip = j, nlines = 1, sep = ',', what = character(), quiet = TRUE) 
-    if(line[1] == 'C'){
-      config = as.list(as.numeric(line[-1]))
-      names(config) = c('gps_mode', 'gps_cycle', 'gps_quota', 'adc_range', 'led_shutoff', 'serial_output')
-      break
-    }
-  }
+  config = ReadConfig(fn[i])
   bitweight_info = GetBitweightInfo(SN = SN, config = config, bitweight = bitweight, bitweight_V = bitweight_V, bitweight_Pa = bitweight_Pa, units = units)
   
   ## ok, we finally know the correct serial number, file format, and bitweight configuration. Read the file with the appropriate function.
+  nums = fn2nums(fn)
   if(is.na(version)){
-    stop('No data files had the correct serial number')
+    stop(paste('Unreadable file format version in file', fn[i]))
+  }else if(version == '0.9'){
+    L = ReadGem_v0.9(nums=nums, path=path, alloutput=alloutput, verbose=verbose, requireGPS=requireGPS, SN=SN)
   }else if(version == '0.85C'){
     L = ReadGem_v0.85C(nums=nums, path=path, alloutput=alloutput, verbose=verbose, requireGPS=requireGPS, SN=SN)
   }else if(version == '0.85'){
@@ -83,4 +92,28 @@ ReadGem = function(nums = 0:9999, path = './', SN = character(), units = 'Pa', b
 
   L$p = L$p * bitweight_info$bitweight
   invisible(L)
+}
+
+########################################################
+ReadSN = function(fn){
+  S = scan(fn, nlines = 1, what = list(character(), numeric()), sep = ',', skip = 4, quiet = TRUE)[[2]] # find the SN
+  return(S)
+}
+
+ReadConfig = function(fn){
+  config = list(gps_mode = 1, gps_cycle = 15, gps_quota = 20, adc_range = 0, led_shutoff = 0, serial_output = 0) ## default config: it's fairly safe to use this as the default because any other configuration would require 
+  for(j in 1:10){ ## scan the first few lines of the file, looking for a config line
+    line = scan(fn, skip = j, nlines = 1, sep = ',', what = character(), quiet = TRUE)
+    if(length(line) == 0) next
+    if(line[1] == 'C'){
+      config = as.list(as.numeric(line[-1]))
+      names(config) = c('gps_mode', 'gps_cycle', 'gps_quota', 'adc_range', 'led_shutoff', 'serial_output')
+      break
+    }
+  }
+  return(config)
+}
+
+fn2nums = function(x){
+  as.numeric(substr(sapply(strsplit(x, '/'), function(L)L[[length(L)]]), 5, 9))
 }

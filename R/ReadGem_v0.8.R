@@ -207,7 +207,7 @@ ReadGem_v0.8= function(nums = 0:9999, path = './', alloutput = FALSE, verbose = 
     
     ## append GPS data if present
     if(length(wg) > 1){
-      OUTPUT$gps = rbind(OUTPUT$gps, as.data.frame(cbind(year = L$g$yr, date = L$g$td, lat = L$g$lat, lon = L$g$lon))[!wna,])
+      OUTPUT$gps = rbind(OUTPUT$gps, as.data.frame(cbind(year = L$g$yr, date = L$g$td, lat = L$g$lat, lon = L$g$lon)))#[!wna,])# 2020-01-01: wna is redundant (has already been used to eliminate NaNs above, as wgood)
     }
     
     ## append header info: each item is a vector with each element corresponding to a file

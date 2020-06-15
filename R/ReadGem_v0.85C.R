@@ -222,7 +222,8 @@ ReadGem_v0.85C = function(nums = 0:9999, path = './', SN = character(), alloutpu
       if(length(L$g$tf) > 1){
         l = lm(L$g$tf ~ L$g$millis)
         l$residuals = as.numeric(l$residuals)
-        timecorrected = c(empty_time, l$coefficients[1] + millis_unwrap * l$coefficients[2]) # empty time is to make it the POSIXct class
+                                        #timecorrected = c(empty_time, l$coefficients[1] + millis_unwrap * l$coefficients[2]) # empty time is to make it the POSIXct class
+        timecorrected = as.POSIXct(l$coefficients[1] + millis_unwrap * l$coefficients[2], origin = '1970-01-01') # empty time is to make it the POSIXct class
         L$g$t = timecorrected[wg]
         L$d$t = timecorrected[wd]
         if(length(wm) > 0){

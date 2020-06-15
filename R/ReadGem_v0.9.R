@@ -36,7 +36,7 @@ ReadGem_v0.9 = function(nums = 0:9999, path = './', SN = character(), alloutput 
   ########################################################
   ## loop through files, processing each individually and appending to OUTPUT
   for(i in 1:length(fn)){
-    if(verbose) print(paste('File', i, 'of', length(fn), ':', fn[i]))
+    if(verbose) print(paste('File', i, 'of', length(fn), ':', fn[i])) # 2020-05-23
     
     L = list()
     
@@ -223,7 +223,8 @@ ReadGem_v0.9 = function(nums = 0:9999, path = './', SN = character(), alloutput 
       if(length(L$g$tf) > 1){
         l = lm(L$g$tf ~ L$g$millis)
         l$residuals = as.numeric(l$residuals)
-        timecorrected = c(empty_time, l$coefficients[1] + millis_unwrap * l$coefficients[2]) # empty time is to make it the POSIXct class
+                                        #timecorrected = c(empty_time, l$coefficients[1] + millis_unwrap * l$coefficients[2]) # empty time is to make it the POSIXct class
+        timecorrected = as.POSIXct(l$coefficients[1] + millis_unwrap * l$coefficients[2], origin = '1970-01-01')
         L$g$t = timecorrected[wg]
         L$d$t = timecorrected[wd]
         if(length(wm) > 0){
@@ -308,7 +309,7 @@ ReadGem_v0.9 = function(nums = 0:9999, path = './', SN = character(), alloutput 
     if(length(wm) == 0){
       warning('File ', fn[i], ': No metadata available')
     }
-    print(c(length(L$d$t), length(L$d$pressure)))
+    print(c(length(L$d$t), length(L$d$pressure))) ## 2020-05-23
     ## done with current file; move on to the next
     tf0 = OUTPUT$t[length(OUTPUT$t)]
     last_millis = millis[wd[length(wd)]]
